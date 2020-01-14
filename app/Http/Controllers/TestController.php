@@ -6,69 +6,171 @@ use Illuminate\Http\Request;
 
 class TestController extends Controller
 {
-    public function alipay()
+    public function test()
     {
-        $ali_gateway = "https://openapi.alipaydev.com/gateway.do"; //支付宝网关
+        $url = "http://server.1905.com/api/goods?id=1";
+        $data = file_get_contents($url);
+        echo $data;
+    }
 
-        $appid = '2016101400681519';
-        $method = "alipay.trade.page.pay";
-        $charset = "utf-8";
-        $signtype = "RSA2";
-        $sign = '';
-        $timestamp = date("Y-m-d H:i:s");
-        $version = "1.0";
-        $return_url = 'http://api.1905.com/test/alipay/return';// 支付宝同步通知
-        $notify_url = 'http://api.1905.com/test/alipay/notify';// 支付宝异步通知地址
-        $biz_content = '';
-        // 请求参数
-        $out_trade_no = time() . rand(1111,9999);       //商户订单号
-        $product_code = 'FAST_INSTANT_TRADE_PAY';
-        $total_amount = 0.01;
-        $subject = '测试订单' . $out_trade_no;
-        $request_param = [
-            'out_trade_no'  => $out_trade_no,
-            'product_code'  => $product_code,
-            'total_amount'  => $total_amount,
-            'subject'       => $subject
+    public function encrypt()
+    {
+        $data = $_GET['data'];
+
+        $method = "AES-256-CBC";
+        $key = "1905api";
+        $iv = "WUSD8796IDjhkchd";
+
+        $enc_data = openssl_encrypt($data, $method, $key, OPENSSL_RAW_DATA, $iv);
+        echo '加密：' . $enc_data;
+        echo "<br>";
+        //发送加密数据
+        $url = "http://server.1905.com/api/decrypt?data=" . urlencode(base64_encode($enc_data));
+        $res = file_get_contents($url);
+        echo $res;
+    }
+
+    public function rsa1()
+    {
+        $priv_key = file_get_contents(storage_path('keys/priv.key'));
+
+        $data = '我爱北京';
+        openssl_private_encrypt($data, $enc_data, $priv_key);
+//        echo '加密数据:'.$enc_data;echo "<br>";
+
+
+        $base64_encode_str = base64_encode($enc_data);
+        echo 'base64:' . $base64_encode_str;
+        $url = "http://server.1905.com/api/RsaDecrypt?data=" . urlencode($base64_encode_str);
+//        echo $url;
+        $res = file_get_contents($url);
+        echo $res;
+    }
+
+    public function curl1()
+    {
+        $url = "http://1905api.comcto.com/test/curl1?name=ljx&age=18";
+
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_exec($ch);
+        curl_close($ch);
+    }
+
+    public function curl2()
+    {
+        $url = "http://1905api.comcto.com/test/curl2";
+        $data = [
+            'name' => 'zhangsan',
+            'age' => 123
         ];
-        $param = [
-            'app_id'        => $appid,
-            'method'        => $method,
-            'charset'       => $charset,
-            'sign_type'     => $signtype,
-            'timestamp'     => $timestamp,
-            'version'       => $version,
-            'notify_url'    => $notify_url,
-            'return_url'    => $return_url,
-            'biz_content'   => json_encode($request_param)
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+        curl_exec($ch);
+        curl_close($ch);
+    }
+
+    public function curl3()
+    {
+        $url = "http://1905api.comcto.com/test/curl3";
+        $data = [
+            'img1' => new \CURLFile('a.jpg')
         ];
-        // 字典序排序
-        ksort($param);
-        // 2 拼接 key1=value1&key2=value2...
-        $str = "";
-        foreach($param as $k=>$v)
-        {
-            $str .= $k . '=' . $v . '&';
-        }
-        $str = rtrim($str,'&');
-        // 3 计算签名   https://docs.open.alipay.com/291/106118
-        $key = storage_path('keys/app_priv');
-        $priKey = file_get_contents($key);
-        $res = openssl_get_privatekey($priKey);
-        //var_dump($res);echo '</br>';
-        openssl_sign($str, $sign, $res, OPENSSL_ALGO_SHA256);
-        $sign = base64_encode($sign);
-        $param['sign'] = $sign;
-        // 4 urlencode
-        $param_str = '?';
-        foreach($param as $k=>$v){
-            $param_str .= $k.'='.urlencode($v) . '&';
-        }
-        $param_str = rtrim($param_str,'&');
-        $url = $ali_gateway . $param_str;
-        //发送GET请求
-        header("Location:".$url);
 
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+        curl_exec($ch);
+        curl_close($ch);
+    }
 
+    public function curl4()
+    {
+        $url = "http://1905api.comcto.com/test/curl4";
+        $token = rand(10000, 99999);
+        $token = md5($token);
+        $data = [
+            'name' => 'zhangsan',
+            'age' => 18
+        ];
+
+        $json_str = json_encode($data);
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $json_str);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type:text/plian',
+            'token:' . $token
+        ]);
+        curl_exec($ch);
+        curl_close($ch);
+    }
+
+    /**
+     *
+     */
+    public function sign1()
+    {
+        $params = [
+            'name'=>'xin',
+            'email'=>'xin@qq.com',
+            'amount'=>100,
+            'date'=>time()
+        ];
+
+        ksort($params);
+        print_r($params);
+        $str="";
+        foreach($params as $k=>$v){
+            $str .= $k."=".$v.'&';
+        }
+
+        //使用私钥加密
+        $str=rtrim($str,'&');
+        $priv_key=file_get_contents(storage_path('keys/priv.key'));
+        openssl_sign($str,$signature,$priv_key,OPENSSL_ALGO_SHA256);
+
+        //base64编码签名
+        $sign=base64_encode($signature);
+        echo '签名：',$sign;echo '<br>';
+
+        $url="http://api.1905.com/api/sign1?".$str.'&sign='.urlencode($sign);
+        echo $url;
+    }
+
+    public function sign2()
+    {
+        $name='hello';
+        $params = [
+            'name'=>'xin',
+            'email'=>'xin@qq.com',
+            'amount'=>100,
+            'date'=>time()
+        ];
+
+        ksort($params);
+        print_r($params);
+        $str="";
+        foreach($params as $k=>$v){
+            $str .= $k."=".$v.'&';
+        }
+
+        //使用私钥加密
+        $str=rtrim($str,'&');
+        $priv_key=file_get_contents(storage_path('keys/priv.key'));
+        openssl_sign($str,$signature,$priv_key,OPENSSL_ALGO_SHA256);
+
+        //base64编码签名
+        $sign=base64_encode($signature);
+        echo '签名：',$sign;echo '<br>';
+
+        $url="http://api.1905.com/api/sign1?".$str.'&sign='.urlencode($sign);
+        echo $url;
     }
 }
